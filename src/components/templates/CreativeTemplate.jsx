@@ -33,7 +33,9 @@ export function CreativeTemplate({ data }) {
             <img
               src={personalInfo.avatarUrl}
               alt={personalInfo.fullName}
-              className="w-28 h-28 mx-auto rounded-full object-cover border-4 border-slate-700 shadow-lg"
+              className={`w-28 h-28 mx-auto object-cover border-4 border-slate-700 shadow-lg ${
+                personalInfo.avatarShape === "square" ? "rounded-lg" : "rounded-full"
+              }`}
             />
           </div>
         ) : null}

@@ -77,7 +77,9 @@ export function TechTemplate({ data }) {
             <img
               src={personalInfo.avatarUrl}
               alt={personalInfo.fullName}
-              className="w-20 h-20 rounded-xl object-cover border-2 border-emerald-400/60 shadow-md shrink-0"
+              className={`w-20 h-20 object-cover border-2 border-emerald-400/60 shadow-md shrink-0 ${
+                personalInfo.avatarShape === "square" ? "rounded-lg" : "rounded-full"
+              }`}
             />
           )}
         </div>

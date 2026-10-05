@@ -14,6 +14,7 @@ export const INITIAL_RESUME_STATE = {
     github: '',
     bio: '',
     avatarUrl: '',
+    avatarShape: 'circle', // 'circle' | 'square'
   },
   experiences: [],
   education: [],

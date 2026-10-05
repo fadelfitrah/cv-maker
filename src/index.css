@@ -2,23 +2,30 @@
 
 @layer base {
   :root {
-    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-sans: 'Plus Jakarta Sans', Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --font-serif: 'Playfair Display', Georgia, Cambria, 'Times New Roman', Times, serif;
-    --font-mono: 'Fira Code', monospace;
+    --font-mono: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   }
 
-  * {
-    box-sizing: border-box;
-  }
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
 
   body {
     font-family: var(--font-sans);
     margin: 0;
     padding: 0;
     min-height: 100vh;
-    background-color: #f8fafc;
+    background: #f5f7fb;
     color: #0f172a;
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  button, input, textarea, select { font: inherit; }
+  button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+    outline: 2px solid #6366f1;
+    outline-offset: 2px;
   }
 
   #root {
@@ -31,55 +38,55 @@
   }
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #f1f5f9;
-}
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 9999px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Shared application surfaces */
+.app-shell {
+  background:
+    radial-gradient(circle at 10% -10%, rgba(99, 102, 241, .08), transparent 28rem),
+    radial-gradient(circle at 100% 0%, rgba(14, 165, 233, .06), transparent 26rem),
+    #f5f7fb;
 }
 
-/* A4 Sheet styling for CV print preview */
+.glass-header {
+  background: rgba(255,255,255,.86);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.soft-card {
+  background: rgba(255,255,255,.94);
+  border: 1px solid #e7eaf0;
+  box-shadow: 0 12px 35px rgba(15, 23, 42, .045);
+}
+
 .a4-sheet {
   width: 210mm;
   min-height: 297mm;
-  background-color: #ffffff;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
+  box-shadow: 0 22px 55px rgba(15, 23, 42, .14), 0 4px 12px rgba(15, 23, 42, .06);
   margin: 0 auto;
   box-sizing: border-box;
   position: relative;
   page-break-after: always;
 }
 
-/* Print CSS optimization */
-@media print {
-  @page {
-    size: A4 portrait;
-    margin: 0;
-  }
+@media (max-width: 1100px) {
+  .a4-sheet { transform-origin: top center; }
+}
 
+@media print {
+  @page { size: A4 portrait; margin: 0; }
   body {
-    background-color: #ffffff !important;
+    background-color: #fff !important;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
-
-  .no-print {
-    display: none !important;
-  }
-
-  .print-only {
-    display: block !important;
-  }
-
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
   .a4-sheet {
     box-shadow: none !important;
     margin: 0 !important;
@@ -89,11 +96,5 @@
     border: none !important;
     page-break-after: auto;
   }
-
-  #root {
-    display: block !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 100% !important;
-  }
+  #root { display: block !important; margin: 0 !important; padding: 0 !important; width: 100% !important; }
 }

@@ -14,3 +14,47 @@ The React Compiler is not enabled on this template because of its impact on dev 
 ## Expanding the ESLint configuration
 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+
+
+## Local image upload service
+
+Fitur foto profil menggunakan Node.js + Express + Multer.
+
+### Menjalankan backend
+
+```bash
+cd server
+npm install
+npm run dev
+```
+
+Backend berjalan pada `http://localhost:5000`.
+
+### Menjalankan frontend
+
+Pada terminal lain:
+
+```bash
+npm install
+npm run dev
+```
+
+Frontend berjalan pada URL Vite yang ditampilkan di terminal (biasanya `http://localhost:5173`).
+
+Foto yang diupload disimpan di:
+
+```text
+server/uploads/profile/
+```
+
+Endpoint upload:
+
+```text
+POST http://localhost:5000/api/upload/profile
+```
+
+Field multipart/form-data:
+
+```text
+profileImage
+```

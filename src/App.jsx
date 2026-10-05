@@ -29,7 +29,7 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 selection:bg-indigo-500 selection:text-white">
+    <div className="app-shell min-h-screen flex flex-col text-slate-900 selection:bg-indigo-500 selection:text-white">
       <Navbar />
       <main className="flex-1 flex flex-col">{renderPage()}</main>
       {activePage !== 'portfolio' && <Footer />}

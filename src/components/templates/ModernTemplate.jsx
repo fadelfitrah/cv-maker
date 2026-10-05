@@ -96,7 +96,11 @@ export function ModernTemplate({ data }) {
 
           {/* Photo */}
           {theme?.showPhoto && personalInfo.avatarUrl && (
-            <div className="w-24 h-24 rounded-2xl overflow-hidden shadow-sm shrink-0 border-2 border-white ring-2 ring-slate-100">
+            <div
+              className={`w-24 h-24 overflow-hidden shadow-sm shrink-0 border-2 border-white ring-2 ring-slate-100 ${
+                personalInfo.avatarShape === "square" ? "rounded-lg" : "rounded-full"
+              }`}
+            >
               <img
                 src={personalInfo.avatarUrl}
                 alt={personalInfo.fullName}
