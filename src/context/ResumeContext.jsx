@@ -33,7 +33,7 @@ export function ResumeProvider({ children }) {
     if (window.location.hash.includes('portfolio-share=')) {
       return 'portfolio';
     }
-    return 'editor';
+    return 'home';
   });
 
   const [activeEditorSection, setActiveEditorSection] = useState('personal');
