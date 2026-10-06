@@ -8,11 +8,13 @@ dotenv.config();
 
 const { initDatabase, testConnection } = require("./config/db");
 const uploadProfileImage = require("./services/uploadService");
+const uploadPaymentProof = require("./services/uploadProofService");
 
 // Routes
 const authRoutes = require("./routes/authRoutes");
 const cvRoutes = require("./routes/cvRoutes");
 const transactionRoutes = require("./routes/transactionRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -64,10 +66,36 @@ app.post(
   }
 );
 
+// Endpoint Upload Bukti Pembayaran Transaksi
+app.post(
+  "/api/upload/payment-proof",
+  uploadPaymentProof.single("proofImage"),
+  (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "File bukti pembayaran belum dipilih.",
+      });
+    }
+
+    const fileUrl = `http://localhost:${PORT}/uploads/proofs/${req.file.filename}`;
+
+    return res.status(200).json({
+      success: true,
+      message: "Bukti transfer pembayaran berhasil diupload.",
+      data: {
+        filename: req.file.filename,
+        url: fileUrl,
+      },
+    });
+  }
+);
+
 // Daftarkan Routes Database
 app.use("/api/auth", authRoutes);
 app.use("/api/cv", cvRoutes);
 app.use("/api/transactions", transactionRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Error handler untuk Multer dan error server lainnya
 app.use((err, req, res, next) => {

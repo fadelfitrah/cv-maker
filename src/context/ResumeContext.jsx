@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { storageService } from '../services/storageService';
 import { exportService } from '../services/exportService';
+import { cvApi } from '../services/apiService';
+import { useAuth } from './AuthContext';
 import { useUndoRedo } from '../hooks/useUndoRedo';
 import { useAutoSave } from '../hooks/useAutoSave';
 import { INITIAL_RESUME_STATE } from '../types/resume';
@@ -8,14 +10,20 @@ import { INITIAL_RESUME_STATE } from '../types/resume';
 const ResumeContext = createContext(null);
 
 export function ResumeProvider({ children }) {
+  const { user } = useAuth();
+
   // Cek apakah ada shared portfolio data dari URL hash
   const initialData = React.useMemo(() => {
     const shared = exportService.parseSharedDataFromUrl();
     if (shared) {
       return shared;
     }
+    if (user?.id) {
+      const cached = storageService.loadUserResumeData(user.id);
+      if (cached) return cached;
+    }
     return storageService.loadResumeData();
-  }, []);
+  }, [user?.id]);
 
   const {
     state: resumeData,
@@ -26,7 +34,8 @@ export function ResumeProvider({ children }) {
     canRedo,
   } = useUndoRedo(initialData);
 
-  const saveStatus = useAutoSave(resumeData);
+  // AutoSave langsung menembak ke database MySQL per-user
+  const saveStatus = useAutoSave(resumeData, user?.id);
 
   // App routing / navigation state
   const [activePage, setActivePage] = useState(() => {
@@ -38,6 +47,8 @@ export function ResumeProvider({ children }) {
 
   const [activeEditorSection, setActiveEditorSection] = useState('personal');
   const [toastMessage, setToastMessage] = useState(null);
+  const [isLoadingCv, setIsLoadingCv] = useState(false);
+  const [activeCvId, setActiveCvId] = useState(null);
 
   const showToast = useCallback((message, type = 'success') => {
     setToastMessage({ message, type, id: Date.now() });
@@ -46,6 +57,57 @@ export function ResumeProvider({ children }) {
   const clearToast = useCallback(() => {
     setToastMessage(null);
   }, []);
+
+  // Memuat data CV user dari database MySQL
+  const loadUserCvFromDatabase = useCallback(async (userId) => {
+    if (!userId) return;
+    setIsLoadingCv(true);
+    try {
+      const res = await cvApi.getUserActiveCv(userId);
+      if (res.success && res.data) {
+        setResumeData(res.data);
+        setActiveCvId(res.cvId || null);
+        storageService.saveUserResumeData(userId, res.data);
+      }
+    } catch (err) {
+      console.warn('Gagal memuat CV dari MySQL, menggunakan cache lokal:', err.message);
+      const cached = storageService.loadUserResumeData(userId);
+      if (cached) {
+        setResumeData(cached);
+      }
+    } finally {
+      setIsLoadingCv(false);
+    }
+  }, [setResumeData]);
+
+  // Efek sinkronisasi login/logout:
+  // Ketika user login: muat data CV milik user tersebut dari MySQL
+  // Ketika user logout: reset data editor ke kosong/default (tidak memakai data lokal orang lain)
+  useEffect(() => {
+    if (user?.id) {
+      loadUserCvFromDatabase(user.id);
+    } else {
+      setActiveCvId(null);
+      setResumeData(INITIAL_RESUME_STATE);
+    }
+  }, [user?.id, loadUserCvFromDatabase, setResumeData]);
+
+  // Simpan eksplisit ke database MySQL (misal tombol Simpan manual)
+  const saveToDatabaseNow = useCallback(async () => {
+    if (!user?.id) {
+      showToast('Silakan login terlebih dahulu untuk menyimpan ke database.', 'error');
+      return false;
+    }
+    try {
+      await cvApi.saveUserActiveCv(user.id, resumeData);
+      storageService.saveUserResumeData(user.id, resumeData);
+      showToast('Data CV berhasil disimpan ke database MySQL.', 'success');
+      return true;
+    } catch (err) {
+      showToast(err.message || 'Gagal menyimpan ke database.', 'error');
+      return false;
+    }
+  }, [user?.id, resumeData, showToast]);
 
   // Update Personal Info
   const updatePersonalInfo = useCallback((field, value) => {
@@ -276,6 +338,10 @@ export function ResumeProvider({ children }) {
     resumeData,
     setResumeData,
     saveStatus,
+    isLoadingCv,
+    activeCvId,
+    loadUserCvFromDatabase,
+    saveToDatabaseNow,
     undo,
     redo,
     canUndo,

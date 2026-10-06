@@ -20,6 +20,15 @@ export function AuthProvider({ children }) {
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const [pendingRedirectPage, setPendingRedirectPage] = useState(null);
 
+  const [pendingOrder, setPendingOrder] = useState(() => {
+    try {
+      const saved = localStorage.getItem('procv_pending_order_v1');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
   // Sinkronkan status plan user secara real-time dari database MySQL
   const refreshUser = useCallback(async () => {
     if (!user?.id) return;
@@ -30,11 +39,18 @@ export function AuthProvider({ children }) {
           const updated = {
             ...prev,
             ...freshUser,
+            role: freshUser.role || 'user',
             plan_status: freshUser.plan_status || 'free',
           };
           localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updated));
           return updated;
         });
+
+        // Jika user sudah disetujui Pro oleh admin, bersihkan pending order
+        if (freshUser.plan_status === 'pro') {
+          setPendingOrder(null);
+          localStorage.removeItem('procv_pending_order_v1');
+        }
       }
     } catch (err) {
       console.warn('Gagal memuat status user terkini dari database MySQL:', err.message);
@@ -81,10 +97,19 @@ export function AuthProvider({ children }) {
 
   const logout = () => {
     setUser(null);
+    setPendingOrder(null);
     localStorage.removeItem(USER_STORAGE_KEY);
+    localStorage.removeItem('procv_pending_order_v1');
   };
 
-  const upgradeToPro = async (planName = 'Pro Membership Lifetime', amount = 49000, paymentMethod = 'qris') => {
+  // Pengajuan Upgrade ke Pro: Sistem TIDAK mengubah status otomatis, user menunggu ACC Admin
+  const upgradeToPro = async (
+    planName = 'Pro Membership Lifetime',
+    amount = 49000,
+    paymentMethod = 'qris',
+    paymentDetails = null,
+    paymentProof = null
+  ) => {
     if (!user) {
       setIsAuthModalOpen(true);
       return { success: false, message: 'Silakan login terlebih dahulu.' };
@@ -92,16 +117,33 @@ export function AuthProvider({ children }) {
 
     setLoading(true);
     try {
-      const res = await authApi.upgradePlan(user.id, planName, amount, paymentMethod);
-      const updatedUser = {
-        ...user,
-        ...res.data.user,
-        plan_status: 'pro',
+      const res = await authApi.upgradePlan(
+        user.id,
+        planName,
+        amount,
+        paymentMethod,
+        paymentDetails,
+        paymentProof
+      );
+
+      // Catat info pending order di local state
+      const pendingInfo = {
+        orderId: res.data?.orderId,
+        planName,
+        amount,
+        paymentMethod,
+        createdAt: new Date().toISOString(),
+        status: 'pending',
       };
-      setUser(updatedUser);
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
-      setIsUpgradeModalOpen(false);
-      return { success: true, message: res.message, data: res.data };
+      setPendingOrder(pendingInfo);
+      localStorage.setItem('procv_pending_order_v1', JSON.stringify(pendingInfo));
+
+      return {
+        success: true,
+        requiresAdminApproval: true,
+        message: res.message,
+        data: res.data,
+      };
     } catch (err) {
       return { success: false, message: err.message };
     } finally {
@@ -129,6 +171,7 @@ export function AuthProvider({ children }) {
   };
 
   const isPro = user?.plan_status === 'pro';
+  const isAdmin = user?.role === 'admin';
   const isLoggedIn = !!user;
 
   return (
@@ -138,6 +181,9 @@ export function AuthProvider({ children }) {
         loading,
         isLoggedIn,
         isPro,
+        isAdmin,
+        pendingOrder,
+        setPendingOrder,
         login,
         register,
         logout,

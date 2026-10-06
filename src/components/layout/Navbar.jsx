@@ -19,11 +19,12 @@ import {
   LogOut,
   User,
   Zap,
+  ShieldCheck,
 } from 'lucide-react';
 
 export function Navbar() {
   const { resumeData, activePage, setActivePage, saveStatus, undo, redo, canUndo, canRedo } = useResume();
-  const { user, isLoggedIn, isPro, logout, openAuthModal, openUpgradeModal } = useAuth();
+  const { user, isLoggedIn, isPro, isAdmin, logout, openAuthModal, openUpgradeModal } = useAuth();
   const { printResume, isPrinting } = usePrintResume(resumeData.personalInfo?.fullName);
 
   const navItems = [
@@ -33,6 +34,7 @@ export function Navbar() {
     { id: 'templates', label: 'Template', icon: LayoutTemplate },
     { id: 'portfolio', label: 'Portfolio', icon: Globe },
     { id: 'settings', label: 'Data', icon: Settings },
+    ...(isAdmin ? [{ id: 'admin', label: 'Admin Panel', icon: ShieldCheck, requiresAuth: true, highlight: true }] : []),
   ];
 
   const handleNavClick = (item) => {
@@ -172,6 +174,19 @@ export function Navbar() {
                     </span>
                   </div>
                 </div>
+
+                {/* Tombol Akses Khusus Admin */}
+                {isAdmin && (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    icon={ShieldCheck}
+                    onClick={() => setActivePage('admin')}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-sm"
+                  >
+                    Admin Panel
+                  </Button>
+                )}
 
                 {/* Tombol Upgrade jika masih status Free */}
                 {!isPro && (

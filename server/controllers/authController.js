@@ -152,22 +152,32 @@ exports.getUserById = async (req, res) => {
 };
 
 /**
- * Upgrade Plan User dari Free ke Pro (Berbayar)
+ * Pengajuan Upgrade Plan User dari Free ke Pro (Menunggu ACC Admin)
  * POST /api/auth/upgrade-plan
+ * Aturan: Sistem TIDAK MENGUBAH STATUS USER SECARA OTOMATIS.
+ * Sistem hanya mencatat transaksi 'pending' dan mengirim notifikasi ke admin,
+ * serta meminta user menunggu persetujuan/ACC dari admin.
  */
 exports.upgradePlan = async (req, res) => {
   try {
-    const { userId, planName = "Pro Membership Lifetime", amount = 49000, paymentMethod = "qris" } = req.body;
+    const {
+      userId,
+      planName = "Pro Membership Lifetime",
+      amount = 49000,
+      paymentMethod = "qris",
+      paymentDetails = null,
+      paymentProof = null,
+    } = req.body;
 
     if (!userId) {
       return res.status(400).json({
         success: false,
-        message: "User ID diperlukan untuk upgrade plan.",
+        message: "User ID diperlukan untuk pengajuan upgrade plan.",
       });
     }
 
     // Periksa user
-    const [users] = await pool.query("SELECT id, name, email FROM users WHERE id = ? LIMIT 1", [userId]);
+    const [users] = await pool.query("SELECT id, name, email, role, plan_status FROM users WHERE id = ? LIMIT 1", [userId]);
     if (users.length === 0) {
       return res.status(404).json({
         success: false,
@@ -175,45 +185,62 @@ exports.upgradePlan = async (req, res) => {
       });
     }
 
-    // 1. Update status plan user menjadi 'pro' di tabel users
-    await pool.query("UPDATE users SET plan_status = 'pro', updated_at = NOW() WHERE id = ?", [userId]);
+    const currentUser = users[0];
 
-    // 2. Catat transaksi berhasil ke tabel transactions
+    // Cek jika user sudah pro
+    if (currentUser.plan_status === "pro") {
+      return res.status(400).json({
+        success: false,
+        message: "Akun Anda sudah berstatus Pro.",
+      });
+    }
+
+    // Cek apakah ada transaksi pending sebelumnya yang belum di-ACC
+    const [pendingTrx] = await pool.query(
+      "SELECT id, order_id FROM transactions WHERE user_id = ? AND status = 'pending' ORDER BY created_at DESC LIMIT 1",
+      [userId]
+    );
+
+    // Buat order ID unik
     const orderId = `PAY-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const detailsStr = typeof paymentDetails === "object" && paymentDetails !== null
+      ? JSON.stringify(paymentDetails)
+      : paymentDetails || JSON.stringify({ note: "Pengajuan upgrade menunggu ACC admin", date: new Date().toISOString() });
+
+    // Catat transaksi berstatus 'pending' (MENUNGGU ACC ADMIN)
+    // PENTING: Jangan ubah tabel users! Status user tetap 'free'
     await pool.query(
       `INSERT INTO transactions (
         user_id, order_id, plan_name, amount, currency,
-        status, payment_method, payment_details
-      ) VALUES (?, ?, ?, ?, 'IDR', 'paid', ?, ?)`,
+        status, payment_method, payment_details, payment_proof
+      ) VALUES (?, ?, ?, ?, 'IDR', 'pending', ?, ?, ?)`,
       [
         userId,
         orderId,
         planName,
         amount,
         paymentMethod,
-        JSON.stringify({ note: "Upgrade to Pro successfully processed", timestamp: new Date() }),
+        detailsStr,
+        paymentProof,
       ]
-    );
-
-    // Ambil user terbaru
-    const [updatedUser] = await pool.query(
-      "SELECT id, name, email, role, plan_status FROM users WHERE id = ? LIMIT 1",
-      [userId]
     );
 
     return res.status(200).json({
       success: true,
-      message: "Selamat! Akun Anda berhasil diupgrade ke Paket Berbayar (Pro). Sekarang Anda dapat mendownload CV.",
+      requiresAdminApproval: true,
+      message: "Permintaan upgrade ke mode Pro berhasil diajukan! Silakan tunggu pengecekan pembayaran dan ACC dari Admin. Status akun Anda akan aktif setelah disetujui.",
       data: {
-        user: updatedUser[0],
+        user: currentUser, // user tetap free
         orderId,
+        status: "pending",
+        hasExistingPending: pendingTrx.length > 0,
       },
     });
   } catch (error) {
-    console.error("Upgrade Plan Error:", error);
+    console.error("Upgrade Plan Request Error:", error);
     return res.status(500).json({
       success: false,
-      message: "Gagal mengupgrade plan user.",
+      message: "Gagal mengajukan upgrade plan.",
       error: error.message,
     });
   }

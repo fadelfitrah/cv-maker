@@ -45,14 +45,35 @@ async function initDatabase() {
       const schemaSql = fs.readFileSync(schemaPath, "utf-8");
       await initialConn.query(schemaSql);
       
-      // Pastikan kolom plan_status ada jika tabel sudah terbuat sebelumnya
+      // Pastikan kolom dan tabel sudah termutakhirkan
       try {
+        await initialConn.query(`USE \`${dbConfig.database}\`;`);
+        
+        // Pastikan kolom plan_status ada di users
+        try {
+          await initialConn.query(`ALTER TABLE users ADD COLUMN plan_status ENUM('free', 'pro') DEFAULT 'free';`);
+        } catch (_) {}
+        try {
+          await initialConn.query(`UPDATE users SET plan_status = 'free' WHERE plan_status IS NULL OR plan_status = '';`);
+        } catch (_) {}
+
+        // Pastikan kolom payment_proof dan admin_notes ada di transactions
+        try {
+          await initialConn.query(`ALTER TABLE transactions ADD COLUMN payment_proof VARCHAR(255) NULL;`);
+        } catch (_) {}
+
+        try {
+          await initialConn.query(`ALTER TABLE transactions ADD COLUMN admin_notes TEXT NULL;`);
+        } catch (_) {}
+
+        // Pastikan akun default Admin ada (email: admin@cvmaker.com, password: password123, role: admin)
         await initialConn.query(`
-          USE \`${dbConfig.database}\`;
-          ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_status ENUM('free', 'pro') DEFAULT 'free';
+          INSERT INTO users (name, email, password, role, plan_status)
+          VALUES ('Administrator ProCV', 'admin@cvmaker.com', '$2b$10$wUaX2XN0zRlhvG784s/Ope5Z0PcmqjPzFwzK2oKjY8h/5G8jZzH.S', 'admin', 'pro')
+          ON DUPLICATE KEY UPDATE role = 'admin', plan_status = 'pro';
         `);
       } catch (alterErr) {
-        // Abaikan jika MySQL versi lama tidak support IF NOT EXISTS pada ADD COLUMN
+        console.warn("[Database Warning] Penyesuaian kolom/admin:", alterErr.message);
       }
       
       console.log(`[Database] Database '${dbConfig.database}' dan tabel berhasil disiapkan.`);

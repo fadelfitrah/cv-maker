@@ -9,6 +9,49 @@ const TEMPLATE_PREF_KEY = 'procv_user_pref_v1';
  */
 export const storageService = {
   /**
+   * Mengambil data CV spesifik milik user dari cache lokal (jika offline)
+   */
+  loadUserResumeData: (userId) => {
+    if (!userId) return null;
+    try {
+      const saved = localStorage.getItem(`procv_resume_user_${userId}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          ...INITIAL_RESUME_STATE,
+          ...parsed,
+          personalInfo: { ...INITIAL_RESUME_STATE.personalInfo, ...(parsed.personalInfo || {}) },
+          theme: { ...INITIAL_RESUME_STATE.theme, ...(parsed.theme || {}) },
+          experiences: parsed.experiences || [],
+          education: parsed.education || [],
+          skills: parsed.skills || [],
+          projects: parsed.projects || [],
+          certifications: parsed.certifications || [],
+          languages: parsed.languages || [],
+          customSections: parsed.customSections || [],
+        };
+      }
+    } catch (err) {
+      console.error('Error loading user resume from cache:', err);
+    }
+    return null;
+  },
+
+  /**
+   * Menyimpan data CV khusus user ke cache lokal
+   */
+  saveUserResumeData: (userId, data) => {
+    if (!userId) return false;
+    try {
+      localStorage.setItem(`procv_resume_user_${userId}`, JSON.stringify(data));
+      return true;
+    } catch (err) {
+      console.error('Error saving user resume to cache:', err);
+      return false;
+    }
+  },
+
+  /**
    * Mengambil data CV dari LocalStorage atau default sample jika belum ada
    */
   loadResumeData: () => {
@@ -34,8 +77,7 @@ export const storageService = {
     } catch (err) {
       console.error('Error loading resume data from localStorage:', err);
     }
-    // Default pertama kali buka: gunakan data sampel Engineer agar langsung ada visualnya
-    return SAMPLE_ENGINEER_DATA;
+    return INITIAL_RESUME_STATE;
   },
 
   /**

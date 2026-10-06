@@ -186,20 +186,37 @@ export function AuthModal() {
         </form>
 
         {/* Demo Account Quick Fill Helper */}
-        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-          <span>Akun Demo Uji Coba:</span>
-          <button
-            type="button"
-            onClick={() => {
-              setAuthModalMode('login');
-              setEmail('demo@cvmaker.com');
-              setPassword('password123');
-              setError('');
-            }}
-            className="text-blue-600 font-semibold hover:underline"
-          >
-            Isi Demo (Free)
-          </button>
+        <div className="mt-4 pt-3 border-t border-slate-100 space-y-2 text-[11px] text-slate-500">
+          <div className="flex items-center justify-between">
+            <span>Uji Coba Akun User (Free):</span>
+            <button
+              type="button"
+              onClick={() => {
+                setAuthModalMode('login');
+                setEmail('demo@cvmaker.com');
+                setPassword('password123');
+                setError('');
+              }}
+              className="text-blue-600 font-semibold hover:underline cursor-pointer"
+            >
+              Isi Demo (Free)
+            </button>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-indigo-700">Akun Pengelola (Admin Dashboard):</span>
+            <button
+              type="button"
+              onClick={() => {
+                setAuthModalMode('login');
+                setEmail('admin@cvmaker.com');
+                setPassword('password123');
+                setError('');
+              }}
+              className="text-indigo-600 font-bold hover:underline cursor-pointer"
+            >
+              Isi Akun Admin
+            </button>
+          </div>
         </div>
       </div>
     </Modal>

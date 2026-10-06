@@ -2,6 +2,13 @@ const express = require("express");
 const router = express.Router();
 const cvController = require("../controllers/cvController");
 
+// Ambil CV aktif/utama milik user
+router.get("/user-active/:userId", cvController.getUserActiveCv);
+
+// Simpan atau Auto-save CV aktif milik user ke database MySQL
+router.put("/user-active/:userId", cvController.saveUserActiveCv);
+router.post("/user-active/:userId", cvController.saveUserActiveCv);
+
 // Simpan CV baru beserta data pribadi
 router.post("/", cvController.createCv);
 

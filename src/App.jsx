@@ -12,6 +12,7 @@ import { PreviewPage } from './pages/PreviewPage';
 import { PortfolioPage } from './pages/PortfolioPage';
 import { TemplatesPage } from './pages/TemplatesPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { AdminDashboard } from './pages/AdminDashboard';
 
 function AppContent() {
   const { activePage, setActivePage, toastMessage, clearToast } = useResume();
@@ -37,6 +38,8 @@ function AppContent() {
         return <TemplatesPage />;
       case 'settings':
         return <SettingsPage />;
+      case 'admin':
+        return <AdminDashboard />;
       case 'editor':
         // Pastikan hanya bisa diakses setelah login
         return isLoggedIn ? <EditorPage /> : <LandingPage />;

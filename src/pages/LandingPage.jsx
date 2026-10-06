@@ -515,7 +515,7 @@ export function LandingPage() {
 
                 <div className="mt-6 flex items-baseline gap-1">
                   <span className="text-4xl font-extrabold text-blue-600">
-                    Rp 49.000
+                    Rp 20.000
                   </span>
                   <span className="text-xs text-slate-500 font-medium">
                     / Sekali Bayar (Lifetime)
