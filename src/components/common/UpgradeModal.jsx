@@ -45,22 +45,22 @@ export function UpgradeModal() {
       id: "bca",
       label: "BCA Transfer",
       icon: Building,
-      accountNo: "8820-192-384",
-      accountName: "PT PROCV MAKER INDONESIA",
+      accountNo: "1711-576-725",
+      accountName: "TITIK RAHMAWATI",
     },
     {
-      id: "mandiri",
-      label: "Mandiri Transfer",
+      id: "seabank",
+      label: "Seabank Transfer",
       icon: CreditCard,
-      accountNo: "137-00-198234-9",
-      accountName: "CV MAKER SYSTEM",
+      accountNo: "901762885268",
+      accountName: "NEPAN",
     },
     {
       id: "qris",
       label: "QRIS Semua E-Wallet",
       icon: QrCode,
-      accountNo: "NMID: ID1020304050607",
-      accountName: "PROCV MAKER OFFICIAL",
+      qrimage: "../../../public/images/qrimage.jpeg",
+      accountName: "Cantika",
     },
   ];
 
@@ -278,26 +278,68 @@ export function UpgradeModal() {
               </div>
 
               {/* Rincian Rekening Terpilih */}
-              <div className="mt-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                    Nomor Rekening / Pembayaran:
-                  </span>
-                  <span className="text-sm font-bold font-mono text-slate-900">
-                    {currentChannel.accountNo}
-                  </span>
-                  <span className="text-[11px] text-slate-500 block">
-                    a/n {currentChannel.accountName}
-                  </span>
-                </div>
-                <div className="text-right sm:text-right">
-                  <span className="text-[10px] text-slate-400 block">
-                    Total Transfer:
-                  </span>
-                  <span className="text-sm font-extrabold text-blue-600">
-                    Rp 20.000
-                  </span>
-                </div>
+              <div className="mt-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200/90 text-xs">
+                {currentChannel.id === "qris" ? (
+                  // Tampilan khusus QRIS
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="text-center">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                        Scan QRIS untuk Pembayaran
+                      </span>
+
+                      <span className="text-sm font-bold text-slate-900">
+                        a/n {currentChannel.accountName}
+                      </span>
+                    </div>
+
+                    {currentChannel.qrimage && (
+                      <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                        <img
+                          src={currentChannel.qrimage}
+                          alt="QRIS Pembayaran"
+                          className="w-70 h-70 object-contain"
+                        />
+                      </div>
+                    )}
+
+                    <div className="text-center">
+                      <span className="text-[10px] text-slate-400 block">
+                        Total Pembayaran:
+                      </span>
+
+                      <span className="text-sm font-extrabold text-blue-600">
+                        Rp 20.000
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  // Tampilan untuk transfer bank / metode pembayaran lainnya
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                        Nomor Rekening / Pembayaran:
+                      </span>
+
+                      <span className="text-sm font-bold font-mono text-slate-900">
+                        {currentChannel.accountNo}
+                      </span>
+
+                      <span className="text-[11px] text-slate-500 block">
+                        a/n {currentChannel.accountName}
+                      </span>
+                    </div>
+
+                    <div className="text-right sm:text-right">
+                      <span className="text-[10px] text-slate-400 block">
+                        Total Transfer:
+                      </span>
+
+                      <span className="text-sm font-extrabold text-blue-600">
+                        Rp 20.000
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

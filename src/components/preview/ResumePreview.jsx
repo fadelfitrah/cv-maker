@@ -1,25 +1,42 @@
-import React, { useState } from 'react';
-import { useResume } from '../../context/ResumeContext';
-import { usePrintResume } from '../../hooks/usePrintResume';
-import { TemplateRenderer } from '../templates/TemplateRenderer';
-import { TEMPLATE_LIST } from '../../types/resume';
+import React, { useState } from "react";
+import { useResume } from "../../context/ResumeContext";
+import { usePrintResume } from "../../hooks/usePrintResume";
+import { useAuth } from "../../context/AuthContext";
+import { TemplateRenderer } from "../templates/TemplateRenderer";
+import { TEMPLATE_LIST } from "../../types/resume";
 import {
   ZoomIn,
   ZoomOut,
   Maximize2,
   Printer,
   FileDown,
+  Lock,
   LayoutTemplate,
-} from 'lucide-react';
+} from "lucide-react";
 
 export function ResumePreview({ isFullscreen = false }) {
   const { resumeData, updateTheme } = useResume();
   const [zoomLevel, setZoomLevel] = useState(isFullscreen ? 0.95 : 0.78);
-  const { printResume, isPrinting } = usePrintResume(resumeData.personalInfo?.fullName);
+  const { printResume, isPrinting } = usePrintResume(
+    resumeData.personalInfo?.fullName,
+  );
+  const { isPro, isLoggedIn, openAuthModal, openUpgradeModal } = useAuth();
 
   const handleZoomIn = () => setZoomLevel((prev) => Math.min(prev + 0.1, 1.3));
-  const handleZoomOut = () => setZoomLevel((prev) => Math.max(prev - 0.1, 0.45));
+  const handleZoomOut = () =>
+    setZoomLevel((prev) => Math.max(prev - 0.1, 0.45));
   const handleResetZoom = () => setZoomLevel(isFullscreen ? 0.95 : 0.78);
+  const handlePrintOrDownload = () => {
+    if (!isLoggedIn) {
+      openAuthModal("login");
+      return;
+    }
+    if (!isPro) {
+      openUpgradeModal();
+      return;
+    }
+    printResume();
+  };
 
   return (
     <div className="flex flex-col h-full bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden shadow-inner">
@@ -29,7 +46,7 @@ export function ResumePreview({ isFullscreen = false }) {
         <div className="flex items-center gap-2">
           <LayoutTemplate className="w-4 h-4 text-indigo-600" />
           <select
-            value={resumeData.theme?.templateId || 'modern'}
+            value={resumeData.theme?.templateId || "modern"}
             onChange={(e) => updateTheme({ templateId: e.target.value })}
             className="text-xs font-semibold bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-700 hover:border-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer"
           >
@@ -75,12 +92,16 @@ export function ResumePreview({ isFullscreen = false }) {
         {/* Print / Download Button */}
         <button
           type="button"
-          onClick={printResume}
+          onClick={handlePrintOrDownload}
           disabled={isPrinting}
           className="flex items-center gap-1.5 px-3 py-1 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 transition shadow-xs cursor-pointer"
         >
-          <Printer className="w-3.5 h-3.5" />
-          <span>Cetak PDF</span>
+          {isPro ? (
+            <Printer className="w-3.5 h-3.5" />
+          ) : (
+            <Lock className="w-3.5 h-3.5" />
+          )}
+          {isPro ? <span>Cetak PDF</span> : <span>Unduh PDF (Pro)</span>}
         </button>
       </div>
 
@@ -89,8 +110,8 @@ export function ResumePreview({ isFullscreen = false }) {
         <div
           style={{
             transform: `scale(${zoomLevel})`,
-            transformOrigin: 'top center',
-            transition: 'transform 0.15s ease-out',
+            transformOrigin: "top center",
+            transition: "transform 0.15s ease-out",
           }}
           className="print:scale-100 print:transform-none"
         >
