@@ -1,5 +1,8 @@
 const bcrypt = require("bcryptjs");
 const { pool } = require("../config/db");
+const jwt = require("jsonwebtoken");
+const dotenv = require("dotenv");
+dotenv.config();
 
 /**
  * Registrasi User Baru
@@ -24,11 +27,15 @@ exports.register = async (req, res) => {
     }
 
     // Cek apakah email sudah terdaftar
-    const [existing] = await pool.query("SELECT id FROM users WHERE email = ? LIMIT 1", [email]);
+    const [existing] = await pool.query(
+      "SELECT id FROM users WHERE email = ? LIMIT 1",
+      [email],
+    );
     if (existing.length > 0) {
       return res.status(409).json({
         success: false,
-        message: "Email sudah terdaftar. Silakan gunakan email lain atau login.",
+        message:
+          "Email sudah terdaftar. Silakan gunakan email lain atau login.",
       });
     }
 
@@ -39,7 +46,7 @@ exports.register = async (req, res) => {
     // Simpan user ke tabel users dengan status default free
     const [result] = await pool.query(
       "INSERT INTO users (name, email, password, role, plan_status) VALUES (?, ?, ?, 'user', 'free')",
-      [name, email, hashedPassword]
+      [name, email, hashedPassword],
     );
 
     const userId = result.insertId;
@@ -80,7 +87,10 @@ exports.login = async (req, res) => {
       });
     }
 
-    const [rows] = await pool.query("SELECT * FROM users WHERE email = ? LIMIT 1", [email]);
+    const [rows] = await pool.query(
+      "SELECT * FROM users WHERE email = ? LIMIT 1",
+      [email],
+    );
     if (rows.length === 0) {
       return res.status(401).json({
         success: false,
@@ -97,9 +107,19 @@ exports.login = async (req, res) => {
       });
     }
 
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET environment variable is not defined.");
+    }
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+    );
+
     return res.status(200).json({
       success: true,
       message: "Login berhasil.",
+      token,
       data: {
         id: user.id,
         name: user.name,
@@ -127,7 +147,7 @@ exports.getUserById = async (req, res) => {
     const { id } = req.params;
     const [rows] = await pool.query(
       "SELECT id, name, email, role, plan_status, created_at, updated_at FROM users WHERE id = ? LIMIT 1",
-      [id]
+      [id],
     );
 
     if (rows.length === 0) {
@@ -177,7 +197,10 @@ exports.upgradePlan = async (req, res) => {
     }
 
     // Periksa user
-    const [users] = await pool.query("SELECT id, name, email, role, plan_status FROM users WHERE id = ? LIMIT 1", [userId]);
+    const [users] = await pool.query(
+      "SELECT id, name, email, role, plan_status FROM users WHERE id = ? LIMIT 1",
+      [userId],
+    );
     if (users.length === 0) {
       return res.status(404).json({
         success: false,
@@ -198,14 +221,19 @@ exports.upgradePlan = async (req, res) => {
     // Cek apakah ada transaksi pending sebelumnya yang belum di-ACC
     const [pendingTrx] = await pool.query(
       "SELECT id, order_id FROM transactions WHERE user_id = ? AND status = 'pending' ORDER BY created_at DESC LIMIT 1",
-      [userId]
+      [userId],
     );
 
     // Buat order ID unik
     const orderId = `PAY-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
-    const detailsStr = typeof paymentDetails === "object" && paymentDetails !== null
-      ? JSON.stringify(paymentDetails)
-      : paymentDetails || JSON.stringify({ note: "Pengajuan upgrade menunggu ACC admin", date: new Date().toISOString() });
+    const detailsStr =
+      typeof paymentDetails === "object" && paymentDetails !== null
+        ? JSON.stringify(paymentDetails)
+        : paymentDetails ||
+          JSON.stringify({
+            note: "Pengajuan upgrade menunggu ACC admin",
+            date: new Date().toISOString(),
+          });
 
     // Catat transaksi berstatus 'pending' (MENUNGGU ACC ADMIN)
     // PENTING: Jangan ubah tabel users! Status user tetap 'free'
@@ -222,13 +250,14 @@ exports.upgradePlan = async (req, res) => {
         paymentMethod,
         detailsStr,
         paymentProof,
-      ]
+      ],
     );
 
     return res.status(200).json({
       success: true,
       requiresAdminApproval: true,
-      message: "Permintaan upgrade ke mode Pro berhasil diajukan! Silakan tunggu pengecekan pembayaran dan ACC dari Admin. Status akun Anda akan aktif setelah disetujui.",
+      message:
+        "Permintaan upgrade ke mode Pro berhasil diajukan! Silakan tunggu pengecekan pembayaran dan ACC dari Admin. Status akun Anda akan aktif setelah disetujui.",
       data: {
         user: currentUser, // user tetap free
         orderId,
@@ -253,7 +282,7 @@ exports.upgradePlan = async (req, res) => {
 exports.getAllUsers = async (req, res) => {
   try {
     const [users] = await pool.query(
-      "SELECT id, name, email, role, plan_status, created_at, updated_at FROM users ORDER BY created_at DESC"
+      "SELECT id, name, email, role, plan_status, created_at, updated_at FROM users ORDER BY created_at DESC",
     );
 
     return res.status(200).json({

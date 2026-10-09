@@ -24,7 +24,7 @@ app.use(
   cors({
     origin: CLIENT_URL,
     credentials: true,
-  })
+  }),
 );
 
 app.use(express.json());
@@ -63,7 +63,7 @@ app.post(
         url: imageUrl,
       },
     });
-  }
+  },
 );
 
 // Endpoint Upload Bukti Pembayaran Transaksi
@@ -88,7 +88,7 @@ app.post(
         url: fileUrl,
       },
     });
-  }
+  },
 );
 
 // Daftarkan Routes Database
