@@ -114,7 +114,7 @@ export function UpgradeModal() {
 
       const res = await upgradeToPro(
         "Pro Plan Lifetime",
-        49000,
+        20000,
         selectedMethod,
         paymentDetails,
         proofUrl,

@@ -205,7 +205,11 @@ export function AuthProvider({ children }) {
     setIsUpgradeModalOpen(false);
   };
 
-  const isPro = user?.plan_status === "pro";
+  const isPro =
+    user?.role === "admin" ||
+    (user?.plan_status === "pro" &&
+      user?.pro_expires_at &&
+      new Date(user.pro_expires_at).getTime() > Date.now());
   const isAdmin = user?.role === "admin";
   const isLoggedIn = !!user;
 
