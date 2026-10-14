@@ -1,7 +1,6 @@
-import React from 'react';
 import { useResume } from '../../context/ResumeContext';
 import { useAuth } from '../../context/AuthContext';
-import { usePrintResume } from '../../hooks/usePrintResume';
+import { useDownloadResume } from '../../hooks/useDownloadResume';
 import { Button } from '../common/Button';
 import {
   FileText,
@@ -9,6 +8,7 @@ import {
   LayoutTemplate,
   Settings,
   Printer,
+  Download,
   Undo2,
   Redo2,
   CheckCircle2,
@@ -17,15 +17,14 @@ import {
   Crown,
   LogIn,
   LogOut,
-  User,
   Zap,
   ShieldCheck,
 } from 'lucide-react';
 
 export function Navbar() {
-  const { resumeData, activePage, setActivePage, saveStatus, undo, redo, canUndo, canRedo } = useResume();
+  const { activePage, setActivePage, saveStatus, undo, redo, canUndo, canRedo } = useResume();
   const { user, isLoggedIn, isPro, isAdmin, logout, openAuthModal, openUpgradeModal } = useAuth();
-  const { printResume, isPrinting } = usePrintResume(resumeData.personalInfo?.fullName);
+  const { downloadResume, isDownloading } = useDownloadResume();
 
   const navItems = [
     { id: 'home', label: 'Beranda', icon: Home },
@@ -43,19 +42,6 @@ export function Navbar() {
       return;
     }
     setActivePage(item.id);
-  };
-
-  // Handler Download PDF dengan pengecekan plan dari database MySQL
-  const handleDownloadPdf = () => {
-    if (!isLoggedIn) {
-      openAuthModal('login');
-      return;
-    }
-    if (!isPro) {
-      openUpgradeModal();
-      return;
-    }
-    printResume();
   };
 
   return (
@@ -236,9 +222,9 @@ export function Navbar() {
             <Button
               variant="primary"
               size="sm"
-              icon={Printer}
-              onClick={handleDownloadPdf}
-              loading={isPrinting}
+              icon={Download}
+              onClick={downloadResume}
+              loading={isDownloading}
               className={`rounded-xl text-xs font-bold transition-all shadow-md ${
                 isPro
                   ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20'

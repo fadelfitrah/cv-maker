@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useResume } from "../../context/ResumeContext";
-import { usePrintResume } from "../../hooks/usePrintResume";
+import { useDownloadResume } from "../../hooks/useDownloadResume";
 import { useAuth } from "../../context/AuthContext";
 import { TemplateRenderer } from "../templates/TemplateRenderer";
 import { TEMPLATE_LIST } from "../../types/resume";
@@ -8,7 +8,6 @@ import {
   ZoomIn,
   ZoomOut,
   Maximize2,
-  Printer,
   FileDown,
   Lock,
   LayoutTemplate,
@@ -17,27 +16,13 @@ import {
 export function ResumePreview({ isFullscreen = false }) {
   const { resumeData, updateTheme } = useResume();
   const [zoomLevel, setZoomLevel] = useState(isFullscreen ? 0.95 : 0.78);
-  const { printResume, isPrinting } = usePrintResume(
-    resumeData.personalInfo?.fullName,
-  );
-  const { isPro, isLoggedIn, openAuthModal, openUpgradeModal } = useAuth();
+  const { downloadResume, isDownloading } = useDownloadResume();
+  const { isPro } = useAuth();
 
   const handleZoomIn = () => setZoomLevel((prev) => Math.min(prev + 0.1, 1.3));
   const handleZoomOut = () =>
     setZoomLevel((prev) => Math.max(prev - 0.1, 0.45));
   const handleResetZoom = () => setZoomLevel(isFullscreen ? 0.95 : 0.78);
-  const handlePrintOrDownload = () => {
-    if (!isLoggedIn) {
-      openAuthModal("login");
-      return;
-    }
-    if (!isPro) {
-      openUpgradeModal();
-      return;
-    }
-    printResume();
-  };
-
   return (
     <div className="flex flex-col h-full bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden shadow-inner">
       {/* Top Floating Controls Bar */}
@@ -89,19 +74,19 @@ export function ResumePreview({ isFullscreen = false }) {
           </button>
         </div>
 
-        {/* Print / Download Button */}
+        {/* PDF Download Button */}
         <button
           type="button"
-          onClick={handlePrintOrDownload}
-          disabled={isPrinting}
+          onClick={downloadResume}
+          disabled={isDownloading}
           className="flex items-center gap-1.5 px-3 py-1 bg-indigo-600 text-white rounded-lg text-xs font-semibold hover:bg-indigo-700 transition shadow-xs cursor-pointer"
         >
           {isPro ? (
-            <Printer className="w-3.5 h-3.5" />
+            <FileDown className="w-3.5 h-3.5" />
           ) : (
             <Lock className="w-3.5 h-3.5" />
           )}
-          {isPro ? <span>Cetak PDF</span> : <span>Unduh PDF (Pro)</span>}
+          {isPro ? <span>Unduh PDF</span> : <span>Unduh PDF (Pro)</span>}
         </button>
       </div>
 

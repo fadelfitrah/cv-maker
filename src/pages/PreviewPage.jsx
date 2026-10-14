@@ -1,26 +1,22 @@
-import React from 'react';
 import { useResume } from '../context/ResumeContext';
 import { useAuth } from '../context/AuthContext';
-import { usePrintResume } from '../hooks/usePrintResume';
+import { useDownloadResume } from '../hooks/useDownloadResume';
 import { exportService } from '../services/exportService';
 import { ResumePreview } from '../components/preview/ResumePreview';
 import { Button } from '../components/common/Button';
 import {
-  Printer,
   FileText,
   Download,
   Share2,
   ArrowLeft,
-  CheckCircle,
   Zap,
   Lock,
-  Crown,
 } from 'lucide-react';
 
 export function PreviewPage() {
   const { resumeData, setActivePage, showToast } = useResume();
-  const { isPro, isLoggedIn, openAuthModal, openUpgradeModal } = useAuth();
-  const { printResume, isPrinting } = usePrintResume(resumeData.personalInfo?.fullName);
+  const { isPro, openUpgradeModal } = useAuth();
+  const { downloadResume, isDownloading } = useDownloadResume();
 
   const handleDownloadMarkdown = () => {
     exportService.downloadMarkdownFile(resumeData);
@@ -33,18 +29,6 @@ export function PreviewPage() {
       navigator.clipboard.writeText(link);
       showToast('Tautan Portofolio Berhasil Disalin ke Clipboard!');
     }
-  };
-
-  const handlePrintOrDownload = () => {
-    if (!isLoggedIn) {
-      openAuthModal('login');
-      return;
-    }
-    if (!isPro) {
-      openUpgradeModal();
-      return;
-    }
-    printResume();
   };
 
   return (
@@ -61,7 +45,7 @@ export function PreviewPage() {
                 Mode Gratis Aktif: Pratinjau Tersedia, Unduh PDF Terkunci
               </p>
               <p className="text-[11px] text-slate-500">
-                Tingkatkan akun Anda ke paket berbayar (Pro) untuk dapat mengunduh dan mencetak file PDF CV ini.
+                Tingkatkan akun Anda ke paket Pro untuk mengunduh file PDF CV ini.
               </p>
             </div>
           </div>
@@ -90,7 +74,7 @@ export function PreviewPage() {
           </Button>
           <div className="h-5 w-px bg-slate-200 hidden sm:block" />
           <h2 className="text-sm font-bold text-slate-800 hidden sm:block">
-            Pratinjau Cetak Lembar CV (Standar A4)
+            Pratinjau CV (Standar A4)
           </h2>
         </div>
 
@@ -116,12 +100,12 @@ export function PreviewPage() {
           <Button
             variant="primary"
             size="sm"
-            icon={isPro ? Printer : Lock}
-            onClick={handlePrintOrDownload}
-            loading={isPrinting}
+            icon={isPro ? Download : Lock}
+            onClick={downloadResume}
+            loading={isDownloading}
             className={isPro ? 'bg-blue-600 hover:bg-blue-700 text-white font-bold' : 'bg-slate-900 hover:bg-slate-800 text-white'}
           >
-            {isPro ? 'Cetak / Simpan PDF' : 'Unduh PDF (Pro Only)'}
+            {isPro ? 'Unduh PDF' : 'Unduh PDF (Pro Only)'}
           </Button>
         </div>
       </div>

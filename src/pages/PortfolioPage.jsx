@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useResume } from '../context/ResumeContext';
-import { usePrintResume } from '../hooks/usePrintResume';
+import { useDownloadResume } from '../hooks/useDownloadResume';
 import { exportService } from '../services/exportService';
 import { Button } from '../components/common/Button';
 import { Modal } from '../components/common/Modal';
@@ -12,13 +12,8 @@ import {
   ExternalLink,
   Download,
   Share2,
-  Calendar,
-  Briefcase,
   GraduationCap,
   Award,
-  CheckCircle,
-  Sparkles,
-  ArrowRight,
   Code2,
   Send,
 } from 'lucide-react';
@@ -31,7 +26,7 @@ export function PortfolioPage() {
     resumeData;
 
   const primaryColor = theme?.primaryColor || '#4f46e5';
-  const { printResume, isPrinting } = usePrintResume(personalInfo?.fullName);
+  const { downloadResume, isDownloading } = useDownloadResume();
 
   // Filter project by tag
   const [selectedTag, setSelectedTag] = useState('Semua');
@@ -171,8 +166,8 @@ export function PortfolioPage() {
               variant="primary"
               size="lg"
               icon={Download}
-              onClick={printResume}
-              loading={isPrinting}
+              onClick={downloadResume}
+              loading={isDownloading}
             >
               Unduh CV (PDF)
             </Button>

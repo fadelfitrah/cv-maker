@@ -1,30 +1,191 @@
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { TemplateRenderer } from '../components/templates/TemplateRenderer';
+
+const normalizeOklchColors = (element, includeDescendants = true) => {
+  const oklchPattern =
+    /oklch\(\s*([+-]?(?:\d*\.)?\d+)(%)?\s+([+-]?(?:\d*\.)?\d+)(%)?\s+([+-]?(?:\d*\.)?\d+)(?:deg)?(?:\s*\/\s*([+-]?(?:\d*\.)?\d+)(%)?)?\s*\)/gi;
+  const convertColor = (match, lightness, lightnessPercent, chroma, chromaPercent, hue, alpha, alphaPercent) => {
+    const l = Number(lightnessPercent ? lightness / 100 : lightness);
+    const c = Number(chromaPercent ? chroma * 0.004 : chroma);
+    const angle = (Number(hue) * Math.PI) / 180;
+    const a = c * Math.cos(angle);
+    const b = c * Math.sin(angle);
+    const lRoot = l + 0.3963377774 * a + 0.2158037573 * b;
+    const mRoot = l - 0.1055613458 * a - 0.0638541728 * b;
+    const sRoot = l - 0.0894841775 * a - 1.291485548 * b;
+    const lLinear = lRoot ** 3;
+    const mLinear = mRoot ** 3;
+    const sLinear = sRoot ** 3;
+    const channels = [
+      4.0767416621 * lLinear - 3.3077115913 * mLinear + 0.2309699292 * sLinear,
+      -1.2684380046 * lLinear + 2.6097574011 * mLinear - 0.3413193965 * sLinear,
+      -0.0041960863 * lLinear - 0.7034186147 * mLinear + 1.707614701 * sLinear,
+    ].map((value) => {
+      const clamped = Math.min(1, Math.max(0, value));
+      const srgb =
+        clamped <= 0.0031308
+          ? clamped * 12.92
+          : 1.055 * clamped ** (1 / 2.4) - 0.055;
+      return Math.round(srgb * 255);
+    });
+
+    if (alpha === undefined) {
+      return `rgb(${channels.join(', ')})`;
+    }
+    const opacity = Number(alphaPercent ? alpha / 100 : alpha);
+    return `rgba(${channels.join(', ')}, ${opacity})`;
+  };
+
+  const allElements = includeDescendants
+    ? [element, ...element.querySelectorAll('*')]
+    : [element];
+  allElements.forEach((node) => {
+    const computedStyle = window.getComputedStyle(node);
+    Array.from(computedStyle).forEach((property) => {
+      const value = computedStyle.getPropertyValue(property);
+      if (value.includes('oklch(')) {
+        node.style.setProperty(
+          property,
+          value.replace(oklchPattern, convertColor),
+          'important',
+        );
+      }
+    });
+  });
+};
+
 /**
- * Service untuk menangani pencetakan CV (PDF via browser print),
- * export Markdown, serta URL Sharing hash untuk portfolio online.
+ * Service untuk export PDF, Markdown, serta URL Sharing hash untuk portfolio online.
  */
 
 export const exportService = {
   /**
-   * Menyiapkan halaman dan memicu dialog Print bawaan browser.
-   * Format print sudah dioptimalkan melalui @media print di CSS untuk ukuran A4.
+   * Render template CV menjadi PDF A4 yang dapat diunduh langsung dari browser.
    */
-  printCV: (candidateName = 'Resume') => {
-    const originalTitle = document.title;
-    const cleanName = candidateName.replace(/[^a-zA-Z0-9]/g, '_');
-    document.title = `CV_${cleanName}`;
+  downloadPdf: async (data) => {
+    if (!data?.personalInfo) {
+      throw new Error('Data CV tidak tersedia untuk diekspor.');
+    }
+    const [{ default: html2canvas }, { jsPDF }] = await Promise.all([
+      import('html2canvas'),
+      import('jspdf'),
+    ]);
 
-    // Berikan sedikit jeda agar DOM render selesai jika ada transisi
-    setTimeout(() => {
-      window.print();
-      document.title = originalTitle;
-    }, 150);
+    const renderNode = document.createElement('div');
+    renderNode.className = 'a4-sheet';
+    renderNode.style.cssText = 'position:fixed;top:0;left:0;z-index:-1;width:210mm;min-height:297mm;overflow:visible;';
+    renderNode.innerHTML = renderToStaticMarkup(
+      createElement(TemplateRenderer, { data }),
+    );
+    document.body.appendChild(renderNode);
+    const originalRootStyle = document.documentElement.style.cssText;
+    const originalBodyStyle = document.body.style.cssText;
+
+    try {
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
+      await Promise.all(
+        Array.from(renderNode.querySelectorAll('img')).map((image) => {
+          if (image.complete) return Promise.resolve();
+          return new Promise((resolve) => {
+            const timeout = window.setTimeout(resolve, 10000);
+            const finishLoading = () => {
+              window.clearTimeout(timeout);
+              resolve();
+            };
+            image.addEventListener('load', finishLoading, { once: true });
+            image.addEventListener('error', finishLoading, { once: true });
+          });
+        }),
+      );
+      normalizeOklchColors(renderNode);
+      normalizeOklchColors(document.documentElement, false);
+      normalizeOklchColors(document.body, false);
+
+      const canvas = await html2canvas(renderNode, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        windowWidth: 794,
+        imageTimeout: 10000,
+      });
+      if (!canvas.width || !canvas.height) {
+        throw new Error('Gagal merender data CV menjadi PDF.');
+      }
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+        compress: true,
+      });
+      const pageHeight = Math.ceil((canvas.width * 297) / 210);
+      const pageCount = Math.ceil(canvas.height / pageHeight);
+
+      for (let pageIndex = 0; pageIndex < pageCount; pageIndex += 1) {
+        const sourceY = pageIndex * pageHeight;
+        const sliceHeight = Math.min(
+          Math.ceil(pageHeight),
+          canvas.height - sourceY,
+        );
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = sliceHeight;
+        const context = pageCanvas.getContext('2d');
+        if (!context) {
+          throw new Error('Gagal menyiapkan halaman PDF.');
+        }
+        context.fillStyle = '#ffffff';
+        context.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+        context.drawImage(
+          canvas,
+          0,
+          sourceY,
+          canvas.width,
+          sliceHeight,
+          0,
+          0,
+          canvas.width,
+          sliceHeight,
+        );
+
+        if (pageIndex > 0) {
+          pdf.addPage();
+        }
+        const imageData = pageCanvas.toDataURL('image/jpeg', 0.95);
+        const imageHeight = (sliceHeight * 210) / canvas.width;
+        if (
+          !Number.isFinite(imageHeight) ||
+          !Number.isFinite(pageCanvas.width) ||
+          !Number.isFinite(pageCanvas.height) ||
+          !imageData.startsWith('data:image/jpeg')
+        ) {
+          throw new Error(
+            `Dimensi halaman PDF tidak valid (${pageCanvas.width}x${pageCanvas.height}).`,
+          );
+        }
+        pdf.addImage(imageData, 'JPEG', 0, 0, 210, imageHeight);
+      }
+
+      const candidateName = data.personalInfo.fullName || 'Resume';
+      const cleanName = candidateName
+        .trim()
+        .replace(/[^\w-]+/g, '_')
+        .replace(/^_+|_+$/g, '') || 'Resume';
+      pdf.save(`CV_${cleanName}.pdf`);
+    } finally {
+      document.documentElement.style.cssText = originalRootStyle;
+      document.body.style.cssText = originalBodyStyle;
+      renderNode.remove();
+    }
   },
 
   /**
    * Mengonversi struktur CV menjadi format Markdown terstruktur
    */
   exportToMarkdown: (data) => {
-    const { personalInfo, experiences, education, skills, projects, certifications, languages } = data;
+    const { personalInfo, experiences, education, skills, projects, certifications } = data;
 
     let md = `# ${personalInfo.fullName || 'Nama Lengkap'}\n`;
     md += `**${personalInfo.jobTitle || 'Profesi'}**\n\n`;
