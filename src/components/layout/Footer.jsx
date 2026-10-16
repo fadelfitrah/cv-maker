@@ -1,5 +1,5 @@
-import React from 'react';
-import { ShieldCheck, Database, Zap } from 'lucide-react';
+import React from "react";
+import { ShieldCheck, Database, Zap } from "lucide-react";
 
 export function Footer() {
   return (
@@ -10,11 +10,13 @@ export function Footer() {
             CV
           </div>
           <span className="font-bold text-slate-800">ProCV Maker</span>
-          <span className="hidden sm:inline text-slate-400">— Sistem Pembuat CV & Portofolio Profesional</span>
+          <span className="hidden sm:inline text-slate-400">
+            — Sistem Pembuat CV & Portofolio Profesional
+          </span>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-4 text-[11px] text-slate-500">
           <span className="flex items-center gap-1.5 text-blue-600 font-medium">
-            <Database className="w-3.5 h-3.5" /> Database MySQL XAMPP
+            <Database className="w-3.5 h-3.5" /> Database MySQL TIDB Cloud
           </span>
           <span className="text-slate-300">•</span>
           <span className="flex items-center gap-1.5 text-emerald-600 font-medium">
